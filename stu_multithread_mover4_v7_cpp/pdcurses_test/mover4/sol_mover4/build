@@ -1,0 +1,12 @@
+#!/bin/bash
+
+OUT_FILE=exec
+rm $OUT_FILE
+echo "Compiling $OUT_FILE"
+g++ -pthread -lncurses main.cpp ../adc.c ../ncurses_init.c ../can.c ../task_controller.c ../../can-utils/lib.c -lm -o $OUT_FILE
+if [ $? == 1 ]; then
+ exit 2
+fi
+
+echo "Running $OUT_FILE"
+./$OUT_FILE

@@ -1,0 +1,70 @@
+﻿  adc.c
+C:\serge\Vanier\courses\247-607-VA_Computerized Systems Optimization\projects\visual_studio\stu_multithread_mover4_v7_cpp\pdcurses_test\include\curses.h(160): warning C4005: 'MOUSE_MOVED' : macro redefinition
+          C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include\wincon.h(101) : see previous definition of 'MOUSE_MOVED'
+  ncurses_init.c
+C:\serge\Vanier\courses\247-607-VA_Computerized Systems Optimization\projects\visual_studio\stu_multithread_mover4_v7_cpp\pdcurses_test\include\curses.h(160): warning C4005: 'MOUSE_MOVED' : macro redefinition
+          C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include\wincon.h(101) : see previous definition of 'MOUSE_MOVED'
+  main.cpp
+C:\serge\Vanier\courses\247-607-VA_Computerized Systems Optimization\projects\visual_studio\stu_multithread_mover4_v7_cpp\pdcurses_test\include\curses.h(160): warning C4005: 'MOUSE_MOVED' : macro redefinition
+          C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include\wincon.h(101) : see previous definition of 'MOUSE_MOVED'
+  task_controller.c
+C:\serge\Vanier\courses\247-607-VA_Computerized Systems Optimization\projects\visual_studio\stu_multithread_mover4_v7_cpp\pdcurses_test\include\curses.h(160): warning C4005: 'MOUSE_MOVED' : macro redefinition
+          C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include\wincon.h(101) : see previous definition of 'MOUSE_MOVED'
+mover4\task_controller.c(241): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(330): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(351): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+mover4\task_controller.c(352): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+mover4\task_controller.c(372): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(381): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(442): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(468): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(371) : see declaration of 'sprintf'
+mover4\task_controller.c(215): warning C4101: '_pos' : unreferenced local variable
+mover4\task_controller.c(214): warning C4101: 'cnt2' : unreferenced local variable
+mover4\task_controller.c(216): warning C4101: 'canframe' : unreferenced local variable
+mover4\task_controller.c(227): warning C4101: 'traj_ptr_debug' : unreferenced local variable
+mover4\task_controller.c(500): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
+mover4\task_controller.c(521): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(371) : see declaration of 'sprintf'
+mover4\task_controller.c(527): warning C4551: function call missing argument list
+mover4\task_controller.c(674): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(667): warning C4101: 'i' : unreferenced local variable
+mover4\task_controller.c(810): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+mover4\task_controller.c(856): warning C4101: 'r' : unreferenced local variable
+mover4\task_controller.c(997): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(1007): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(1115): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(1132): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(1149): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(1164): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+mover4\task_controller.c(1218): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(105) : see declaration of 'strcpy'
+mover4\task_controller.c(1224): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(105) : see declaration of 'strcpy'
+mover4\task_controller.c(1239): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(105) : see declaration of 'strcpy'
+mover4\task_controller.c(1245): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string.h(105) : see declaration of 'strcpy'
+mover4\task_controller.c(1280): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
+mover4\task_controller.c(1281): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
+  Generating Code...
+c:\serge\vanier\courses\247-607-va_computerized systems optimization\projects\visual_studio\stu_multithread_mover4_v7_cpp\pdcurses_test\mover4\task_controller.c(1021): warning C4715: 'get_keyb_f' : not all control paths return a value
+  .NETFramework,Version=v4.0.AssemblyAttributes.cpp
+task_controller.obj : warning LNK4248: unresolved typeref token (01000017) for 'pthread_mutex_t_'; image may not run
+task_controller.obj : warning LNK4248: unresolved typeref token (0100001C) for 'pthread_attr_t_'; image may not run
+  pdcurses_test.vcxproj -> C:\serge\Vanier\courses\247-607-VA_Computerized Systems Optimization\projects\visual_studio\stu_multithread_mover4_v7_cpp\Debug\pdcurses_test.exe
