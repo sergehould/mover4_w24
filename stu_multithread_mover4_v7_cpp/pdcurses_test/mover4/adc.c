@@ -26,8 +26,8 @@
 #endif
 
 
-#include "../mover4/header/task_controller.h"
-#include "../mover4/header/can.h"
+#include "header/task_controller.h"
+#include "header/can.h"
 #include <math.h>	
 #include <stdio.h>
 #include <stdlib.h>
