@@ -3,6 +3,8 @@
 *
 *	Author				Date					Version
 *	Serge Hould			16 May 2022				v1.0.0	First version
+*	SH					6 Mar. 2023				v1.1.0	renamed adc_read()
+*														Add UDP mode
 *	
 *********************************************************************************************************/
 
@@ -41,12 +43,13 @@
 #define HAVE_STRUCT_TIMESPEC  // for win32 only. Because TIMESPEC is re-defined inside pthread.h
 #endif
 #include <pthread.h>
+#include "header/config.h"
 
 
 #ifndef _WIN32
 #define MAX_BUF	100
 //read adc function definitions  
-int readADC(unsigned int pin)
+int adc_read(unsigned int pin)
 {  
 	int fd;          //file pointer  
 	char buf[MAX_BUF];     //file buffer  
@@ -67,8 +70,15 @@ int readADC(unsigned int pin)
 	return atoi(val);     //returns an integer value (rat }//end read ADC()
 }
 #else
-int readADC(unsigned int pin)
+#if defined UDP
+int adc_read(unsigned int pin)
+{
+	return readADC_udp();
+}
+#else
+int adc_read(unsigned int pin)
 { 
 	return 0;
 }
+#endif
 #endif

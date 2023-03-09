@@ -3,7 +3,8 @@
  *	Provided
  *
  *	Author				Date			Version
- *	Serge Hould			26 Feb 2019		
+ *	Serge Hould			26 Feb 2019		1.0.0
+ *	SH					3 Mar. 2023		1.1.0	Removes all limits inside setFrame6()
  */
  #include <stdio.h>
 #include <stdlib.h>
@@ -168,13 +169,13 @@ int setFrame6(int id, int data1, int data2,int data3, int data4,int data5, int d
 	switch(id){
 		case 0x10:
 		case 0x11:
-			sum = data3*256+data4;
-//			printf("sum: %x\n",sum);
-			if((sum > HIGH_LIM1)  || (sum < LOW_LIM1)){
-				mvprintw(20,0,"Joint 1 exceeds limits\n\n");
-				refresh();
-				return -1;
-			}
+			// sum = data3*256+data4;
+// //			printf("sum: %x\n",sum);
+			// if((sum > HIGH_LIM1)  || (sum < LOW_LIM1)){
+				// mvprintw(20,0,"Joint 1 exceeds limits\n\n");
+				// refresh();
+				// return -1;
+			// }
 			//mvprintw(21,0,"Joint 1 sum %d limit H %d  limit L %d \n\n",sum , HIGH_LIM1, LOW_LIM1);
 			//refresh();
 			sprintf(buff,"%03x#%02x.%02x.%02x.%02x.%02x.%02x.%02x\0",id,data1,data2,data3,data4,data5,data6);
@@ -184,13 +185,13 @@ int setFrame6(int id, int data1, int data2,int data3, int data4,int data5, int d
 		break;
 		case 0x20:
 		case 0x21:
-			sum = data3*256+data4;
-			if((sum > HIGH_LIM2)  || (sum < LOW_LIM2)){
-				mvprintw(20,0,"Joint 2 exceeds limits\n\n");
-				refresh();
-			//	printf("sum: %x\n",sum);
-				return -1;
-			}
+			// sum = data3*256+data4;
+			// if((sum > HIGH_LIM2)  || (sum < LOW_LIM2)){
+				// mvprintw(20,0,"Joint 2 exceeds limits\n\n");
+				// refresh();
+			// //	printf("sum: %x\n",sum);
+				// return -1;
+			// }
 		//	mvprintw(22,0,"Joint 2 sum %d limit H %d  limit L %d \n\n",sum , HIGH_LIM2, LOW_LIM2);
 			//refresh();
 			sprintf(buff,"%03x#%02x.%02x.%02x.%02x.%02x.%02x.%02x\0",id,data1,data2,data3,data4,data5,data6);
@@ -199,13 +200,13 @@ int setFrame6(int id, int data1, int data2,int data3, int data4,int data5, int d
 		break;
 		case 0x30:
 		case 0x31:
-			sum = data3*256+data4;
-			if((sum > HIGH_LIM3)  || (sum < LOW_LIM3)){
-				mvprintw(20,0,"Joint 3 exceeds limits\n\n");
-				refresh();
-			//	mvprintw(17,0,"Joint angle : %x\n\n",angle3);
-				return -1;
-			}
+			// sum = data3*256+data4;
+			// if((sum > HIGH_LIM3)  || (sum < LOW_LIM3)){
+				// mvprintw(20,0,"Joint 3 exceeds limits\n\n");
+				// refresh();
+			// //	mvprintw(17,0,"Joint angle : %x\n\n",angle3);
+				// return -1;
+			// }
 			//mvprintw(23,0,"Joint 3 sum %d limit H %d  limit L %d \n\n",sum , HIGH_LIM3, LOW_LIM3);
 			//refresh();
 			sprintf(buff,"%03x#%02x.%02x.%02x.%02x.%02x.%02x.%02x",id,data1,data2,data3,data4,data5,data6);
@@ -213,12 +214,12 @@ int setFrame6(int id, int data1, int data2,int data3, int data4,int data5, int d
 		break;
 		case 0x40:
 		case 0x41:
-			sum = data3*256+data4;
-			if((sum > HIGH_LIM4)  || (sum < LOW_LIM4)){
-				mvprintw(20,0,"Joint 4 exceeds limits\n\n");
-				refresh();
-				return -1;
-			}
+			// sum = data3*256+data4;
+			// if((sum > HIGH_LIM4)  || (sum < LOW_LIM4)){
+				// mvprintw(20,0,"Joint 4 exceeds limits\n\n");
+				// refresh();
+				// return -1;
+			// }
 		//	mvprintw(24,0,"Joint 4 sum %d limit H %d  limit L %d \n\n",sum , HIGH_LIM4, LOW_LIM4);
 		//	refresh();
 			sprintf(buff,"%03x#%02x.%02x.%02x.%02x.%02x.%02x.%02x\0",id,data1,data2,data3,data4,data5,data6);

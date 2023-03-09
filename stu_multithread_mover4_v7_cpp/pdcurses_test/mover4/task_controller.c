@@ -5,7 +5,7 @@
 *	Serge Hould			16 May 2022		v3.0.0	The controller was revamped
 *	Serge Hould			16 May 2022		v3.1.0	Add	1.5	degrees small error to the simulator to match real robot
 *	Serge Hould			22 May 2022		v3.2.0	Add	set_time and print_time - Not tesed on Linux yet
-*	Serge Hould			27 May 2022				set_time and print_time tesed OK on Linux
+*	Serge Hould			27 May 2022				set_time and print_time tested OK on Linux
 *	Serge Hould			27 May 2022		v4.0.0	New trajectory control - tested ok on the robot
 *	Serge Hould			30 May 2022		v4.1.0	Major renaming of variables and setters-getters
 *	Serge Hould			30 May 2022		v4.2.0	Execute a circle without bug in VS. Tested OK on the robot.
@@ -14,8 +14,30 @@
 *												Streamlined the controller loop. Tested OK on the robot.
 *	Serge Hould			31 May 2022		v4.3.1	Enable set_sp_tics() function in Robot mode.
 *	Serge Hould			11 Jan. 2023	v4.3.2	Modify message when in extrapolation state
+*	Serge Hould			13Feb. 2023		v4.4.0	Add mutexes to set_all_sp_angles()
+*	Serge Hould			26Feb. 2023		v4.5.0	Add a local buffer traj_buf to prevent a crash when 
+*												a task is cancelled while looping inside set_all_sp_angles().
+*												Protection for traj_cnt and traj_max inside pTask_Controller - 
+*												by adding setter-getter.
+*	SH 					6 Mar. 2023		v4.6.0	Remove DEBUG related snippets
+*												Add readADC_udp(). Use of config.h to enable/disable udp mode
+*	SH					7 Mar.2023		v4.7.0	Add traj_cnt_clear() and stop_traject() functions.
+*												Add skip counter to adc_value read to reduce period.
+*												Also, add adc_value_temp to prevent atomicity.
+*												Add a line inside EXTRAPOL case to force IDLE state 
+*												whenever traj_max is 1 or less.
+* SH					8 Mar. 2023				Remove "if (traj_max_get()<=1) set_control_mode(j, IDLE)" line
+*												because	otherwise cannot extraplate a single value
+*	SH					9 Mar.2023				Modified to if (traj_max_get()<1) set_control_mode(j, IDLE) when
+*												in extrapolate mode.
+*												if (traj_max_get() == 0) set_control_mode(j, IDLE);
+*												void stop_traject(void) traj_max_set(0); was previously set to 1
+*												set_all_sp_angles() add a blocing parameter
+*	
 *												
-*
+* 
+*												
+*	TODO: 
 *
 *********************************************************************************************************/
 
@@ -40,7 +62,6 @@
 
 
 #include "header/task_controller.h"
-#include "header/can.h" 
 #include <math.h>	
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +76,14 @@
 #endif
 #include <pthread.h>
 
-//#define DEBUG			// allows testing on BBB without CAN blocking function in the main loop.
+#include "header/config.h"
+
+
+#if defined UDP
+	#include "header/udp.h"
+#else 
+	#include "header/can.h"
+#endif
 
 #define		PI	3.1416
 
@@ -73,7 +101,7 @@
 #define ULNA		8.625      //elbow-to-wrist "bone" 
 #define GRIPPER		6.0           //gripper
 #ifdef _WIN32
-#define DELAY_LOOP	12		// control loop delay in mS . The actual loop delay is 4* DELAY_LOOP. Must never exceed 100 mS - see set_all_sp_angles()
+#define DELAY_LOOP	10		// control loop delay in mS . The actual loop delay is 4* DELAY_LOOP. Must never exceed 100 mS - see set_all_sp_angles()
 #else
 #define DELAY_LOOP	12		// control loop delay in mS . The actual loop delay is 4* DELAY_LOOP
 #endif
@@ -113,6 +141,11 @@ static void set_control_mode(int j, int m);
 static int get_control_mode(int n);
 static void set_all_pv_angles(kin_f _angles);
 static int check_sp_angle(int i, double _angle);
+int traj_max_get();
+void traj_max_set(int);
+int traj_cnt_get();
+void traj_cnt_inc(void);
+void traj_cnt_clear(void);
 
 
 //Global variables
@@ -132,6 +165,7 @@ static char buf_w1[250] = { 0 };	//warning messages
 static char buf_err[250] = { 0 };	//error messages
 static char buf_temp[250];	// temporary buffer
 static char buf_temp2[250];	// temporary buffer
+static int adc_value = 0x1;
 /* display flags*/
 static  int		w1_f = 0, wb_f = 0, ws_f = 0, we_f = 0, ww_f = 0;
 
@@ -144,6 +178,7 @@ double _speed[4] = { SPEED_SLOW , SPEED_SLOW, SPEED_SLOW, SPEED_SLOW };
 int time_diff;
 
 static double* traj_ptr; // to point the trajectory buffer
+static double traj_buf[20000];
 static int 	traj_max, traj_cnt=0;
 static int control_state[4] = { IDLE,IDLE,IDLE,IDLE };
 kin_i _sp_tics = { 0x7d00,0x7d00 ,0x7d00 ,0x7d00 };
@@ -163,11 +198,12 @@ static pthread_mutex_t mutex_skip = PTHREAD_MUTEX_INITIALIZER; // skip counter
 static pthread_mutex_t mutex_motor_charact = PTHREAD_MUTEX_INITIALIZER; // motor speed, acceleration and slow_degree
 static pthread_mutex_t mutex_time = PTHREAD_MUTEX_INITIALIZER; // loop time measure
 static pthread_mutex_t mutex_ctl_st = PTHREAD_MUTEX_INITIALIZER;//control_state
+static pthread_mutex_t mutex_traj_buf = PTHREAD_MUTEX_INITIALIZER;//set_all_sp_angles()
 
 void startTasksControllerRx(void) {
 	/* Thread Area	*/
 	const char* message = "Thread Task";
-
+	traj_ptr = &traj_buf[0];
 	int  iret1, iret2;
 	init_files();
 
@@ -226,8 +262,9 @@ static void* pTask_Controller(void* ptr)
 	/*Temp variable menat for debugging purpose only*/
 	double* traj_ptr_debug; // to convert into a pointer
 	int control_state_debug = IDLE;
-	
-
+#if defined UDP
+	udp_init();
+#endif
 	/* Open state file for reading*/
 	fseek(fd_s, 0, SEEK_SET);
 	/* reads state file in case an error is received */
@@ -244,7 +281,7 @@ static void* pTask_Controller(void* ptr)
 	}
 	// init all gearScale values
 	init_KinematicMover();
-#ifdef _WIN32
+#if defined _WIN32 && !defined UDP
 	// init all values to 0 degree
 	for (j = 0; j < 4; j++) {
 		//_sp_tics.data[j] = 0x7d00;
@@ -252,7 +289,6 @@ static void* pTask_Controller(void* ptr)
 		temp_sp_angles.data[j] = computeJointPos(j, 0x7d00); // converts tics to angles
 	}
 #else
-#ifndef DEBUG
 	/* Send 4 bytes to read the current position of the robot*/
 	for (j = 0; j < 4; j++) {
 		setFrame6(jointIDs[j], 0x04, 0x80, byte_high, byte_low, 0x23, 0x0);
@@ -276,14 +312,7 @@ static void* pTask_Controller(void* ptr)
 			}
 		}
 	}
-#else 
-	// init all values to 0 degrees
-	for (j = 0; j < 4; j++) {
-		//_sp_tics.data[j] = 0x7d00;
-		set_sp_tics(j, 0x7d00);
-		temp_sp_angles.data[j] = computeJointPos(j, 0x7d00); // converts tics to angles
-	}
-#endif  //DEBUG
+
 #endif  // _WIN32
 	/* Memorizes sp tics in case it goes beyond the limits */
 	//sp_tics_memo = _sp_tics;
@@ -341,6 +370,7 @@ static void* pTask_Controller(void* ptr)
 		for (j = 0; j < 4; j++) {	
 			switch (get_control_mode(j)) {
 			case EXTRAPOL:
+				if (traj_max_get()<1) set_control_mode(j, IDLE);
 				/* Extrapolates when too fast */
 				/* Slowly increases or decreases sp until it almost match extrapol_tics*/
 				diff[j] = (double)(_extrapol_tics.data[j] - get_sp_tics(j)); // difference between desired value - _extrapol_tics- and current _sp_tics
@@ -359,7 +389,17 @@ static void* pTask_Controller(void* ptr)
 			case TRAJECT:
 
 				// reads the next point from the trajectory buffer
-				tics_buf = computeTics(j, *(traj_ptr + (traj_cnt * 4 + j)));
+				if (isnan(*(traj_ptr + (traj_cnt_get() * 4 + j)))) {
+					strcat(buf_temp, "Stopped-NaN");
+					set_warnings(buf_temp);
+					set_control_mode(0, IDLE);
+					set_control_mode(1, IDLE);
+					set_control_mode(2, IDLE);
+					set_control_mode(3, IDLE);
+					traj_max_set(0);
+					break;
+				}
+				tics_buf = computeTics(j, *(traj_ptr + (traj_cnt_get() * 4 + j)));
 				// reads the previous trajectory buffer point. Used to detect whether extrapolation is needed.
 				prev_sp_tics_buff = prev_sp_tics.data[j];
 				// check for angle max. Returns 0 if the angle is within the range or return a cap if angle exceeds.
@@ -368,13 +408,15 @@ static void* pTask_Controller(void* ptr)
 					tics_buf = check_angle;// too large value, cap tics_buf 	
 				}
 				//if the user specified 0 point
-				if (traj_max == 0) {
-					strcat(buf_temp, "- cannot be an empty array");
+				if (traj_max_get() == 0) {
+					strcat(buf_temp, "stopped-empty array");
+					set_sp_tics(j, tics_buf);
 					set_warnings(buf_temp);
+					set_control_mode(j, IDLE);
 					break;
 				}
 				//if the user specified one or more point
-				else if (traj_max >= 1) {
+				else if (traj_max_get() >= 1) {
 						//if it needs extrapolation
 						if (fabs((double)tics_buf - (double)prev_sp_tics_buff) > 4 * ONE_DEGREE) {
 							//strcat(buf_temp, "- a point must be extrapolated");
@@ -384,7 +426,7 @@ static void* pTask_Controller(void* ptr)
 							_extrapol_tics.data[j] = tics_buf;
 						}
 						else {
-							if (traj_max == 1) { // single point
+							if (traj_max_get() == 1) { // single point
 								//_sp_tics.data[j] = tics_buf;
 								set_sp_tics(j, tics_buf);
 								set_control_mode(j, IDLE);
@@ -396,11 +438,11 @@ static void* pTask_Controller(void* ptr)
 								extrapol_over_f |= ((1 << j) & 0xf);
 								//All 4 flags are high. It means that we move on to the next point
 								if (extrapol_over_f == 0xf ) {
-									traj_cnt++;
+									traj_cnt_inc();
 									extrapol_over_f = 0x0;
 									// if the end of the array
-									if (traj_cnt >= traj_max ) {
-										traj_cnt = 0;
+									if (traj_cnt_get() >= traj_max_get() ) {
+										traj_cnt_clear();
 										set_control_mode(0, IDLE);
 										set_control_mode(1, IDLE);
 										set_control_mode(2, IDLE);
@@ -414,7 +456,7 @@ static void* pTask_Controller(void* ptr)
 				break;
 			case IDLE:
 				//waits for the user to process a new trajectory buffer
-				traj_cnt = 0;
+				traj_cnt_clear();
 				break;
 
 
@@ -423,7 +465,7 @@ static void* pTask_Controller(void* ptr)
 			// memorizes current _sp_tics
 			prev_sp_tics.data[j] = get_sp_tics(j);
 		}// end of controller for loop
-
+		//mvprintw(22, 0,"traj_cnt: %d, traj_max %d          ", traj_cnt, traj_max);
 
 		if (get_keyb_f(RESET_ERROR) == 1) {  // do a reset error if requested
 			reset_error();
@@ -445,10 +487,9 @@ static void* pTask_Controller(void* ptr)
 		}
 
 		grip = get_gripper();
-#ifdef _WIN32
+#if defined _WIN32 && !defined UDP
 		delay_ms(4*DELAY_LOOP); // Windows simulation delay
-#else		
-#ifndef DEBUG		
+#else				
 		/* Loops to send CAN frames to all motors*/
 		for (j = 0; j < 4; j++) {
 			byte_low = _sp_tics.data[j] & 0x000000ff;
@@ -457,10 +498,8 @@ static void* pTask_Controller(void* ptr)
 			setFrame6(jointIDs[j], 0x04, 0x80, byte_high, byte_low, 0x23, grip);
 			delay_ms(DELAY_LOOP);
 		}
-#else
-		delay_ms(4*DELAY_LOOP); // debug mode
-#endif  //DEBUG
-#endif //_WIN32
+
+#endif //_WIN32 and NOT UDP
 
 		//Erase error messages after 3 seconds
 		pthread_mutex_lock(&mutex_skip);
@@ -480,13 +519,13 @@ static void* pTask_Controller(void* ptr)
 	}// while 1
 }
 
-#ifdef _WIN32
+#if defined _WIN32 && !defined UDP
 /*
 	Task_Rx Simulated
 	Task that normally receives command from the CAN bus.
 	It then sets parameter for Task_Controller
 */
-#define KI      0.05     // Capacitor
+#define KI      0.5     // Capacitor
 #define KR      1       // Resistor
 
 void* pTask_Rx(void* ptr1) {
@@ -499,7 +538,8 @@ void* pTask_Rx(void* ptr1) {
 	char buf1[100];
 	fd_excel = fopen("mover4/excel_sim/export.txt", "w");
 	//fd_s = fopen("mover4_v6/state", "r+");
-#define		_ERROR	2.25		// current angle has a small error to match real robot
+#define		_ERROR	1.25		// current angle has a small error to match real robot
+//#define		_ERROR	2.25		// current angle has a small error to match real robot
 	while (1) {
 		/* Model to simulate all 4 motors */
 		for (i_pid = 0; i_pid < 4; i_pid++) {
@@ -538,6 +578,7 @@ void* pTask_Rx(void* ptr1) {
 	kin_i temp_tics;
 	kin_f temp_curr_angles;
 	can_frame_ canframe;	// structure containing can frame data and id
+	int adc_skip = 0, adc_value_temp;
 	delay_ms(100);
 	char buf[1] = { '1' };  // to be written to state file if error
 	/* state file in case an error is received* /
@@ -594,6 +635,13 @@ void* pTask_Rx(void* ptr1) {
 					fseek(fd_s, 0, SEEK_SET);
 					fwrite(buf, 1, 1, fd_s);  // writes 1 to the state file
 				}
+#if defined UDP
+				if (adc_skip++ > 20) { // reads every 12mS * 20 = 240mS
+					adc_skip = 0;
+					adc_value_temp = (canframe.data[9] & 0xff) << 8 | (canframe.data[8] & 0xff);
+					adc_value = adc_value_temp; // to prevent atomicity
+				}
+#endif
 
 			}
 		}
@@ -610,29 +658,31 @@ void* pTask_Rx(void* ptr1) {
 	//close(s[0]);
 	exit;
 }
-#endif
+#endif // WIN32 and not UDP
 
 /***** Private definitions ************/
 
 //disable motors
 static void disable_motor(void) {
-#ifndef _WIN32
+#if !defined _WIN32 || defined UDP
 	int i;
 	for (i = 0; i < 4; i++) {
 		setFrame2(jointIDs[i], 0x01, 0x0a);
-		usleep(50000);
+		delay_ms(50);
+		//usleep(50000);
 	}
 #endif
 }
 
 //enable motors
 static int enable_motors(void) {
-#ifndef _WIN32
+#if !defined _WIN32 || defined UDP
 	int i;
 	for (i = 0; i < 4; i++) {
 
 		setFrame2(jointIDs[i], 0x01, 0x09);
-		usleep(50000);
+		delay_ms(50);
+		//usleep(50000);
 
 	}
 #endif
@@ -648,7 +698,7 @@ ms to take effect.
 Length has to be 4.
 On some boards: Two acknowledge message are sent: 0x0208
 */
-#ifdef _WIN32
+#if defined _WIN32 && !defined UDP
 static void set_zeros(void) {
 	// no hardware involved in WIN32
 }
@@ -710,7 +760,8 @@ static void maxMissedCom(int low, int high) {
 static void set_zeros(void) {
 	//Set to zero
 	setFrame4(0x10, 0x01, 0x08, 0x0, 0x0);
-	sleep(1);
+	delay_ms(1000);
+	//sleep(1);
 }
 /*
 Reset Error
@@ -723,7 +774,8 @@ static void reset_error(void) {
 	int i;
 	//reset zeros p.8 UserGuide
 	for (i = 0; i < 4; i++) setFrame2(jointIDs[i], 0x01, 0x06);
-	sleep(1);
+	delay_ms(1000);
+	//sleep(1);
 }
 
 void resetJointsToZero(void) {
@@ -732,10 +784,12 @@ void resetJointsToZero(void) {
 
 	for (i = 0; i < 4; i++) {
 		setFrame4(jointIDs[i], 0x01, 0x08, 0x0, 0x0);	// first reset command.. but thats not sufficient
-		sleep(5);
+		delay_ms(5000); 
+		//sleep(5);
 		// the command has to be sent twice in the time of two seconds to take effect
 		setFrame4(jointIDs[i], 0x01, 0x08, 0x0, 0x0);
-		sleep(5);
+		//sleep(5);
+		delay_ms(5000);
 	}
 
 }
@@ -1046,28 +1100,80 @@ int get_keyb_f(int s) {
 *		Elbow (2) -110 to +140			
 *		Wrist (3) -140 to +140					
 */
-void set_all_sp_angles(double* ptr, int max) {
+void set_all_sp_angles(double* ptr, int max, int blocking) {
 	// a delay longer than the loop overhead is needed to allow the loop to reach IDLE state
-	// It is required only from the second call when the control is return to IDLE
-	delay_ms(100); 
-	// mutex here?
-	traj_ptr = ptr; 
-	traj_max = max;
-	// mutex here?
+	delay_ms(100);
+
+	// protects traj_cnt and traj_max
+	pthread_mutex_lock(&mutex_traj_buf);
+	if (max > 0) {
+		memcpy(traj_buf, ptr, max * 4 * sizeof(double)); // 8 bytes for a double
+		traj_max = max;
+		traj_cnt = 0;
+	}
+	//	To prevent warning, generate one point  whenever start 
+	//	and final are the same. 
+	else {
+		*(traj_buf + 0) = get_pv_angle(0);
+		*(traj_buf + 1) = get_pv_angle(1);
+		*(traj_buf + 2) = get_pv_angle(2);
+		*(traj_buf + 3) = get_pv_angle(3);
+		traj_max = 1;
+		traj_cnt = 0;
+	}
+	pthread_mutex_unlock(&mutex_traj_buf);
+
 	set_control_mode(0, TRAJECT);
 	set_control_mode(1, TRAJECT);
 	set_control_mode(2, TRAJECT);
 	set_control_mode(3, TRAJECT);
-	// waits for the trajectory to finish
-	while (get_control_mode(0) != IDLE || get_control_mode(1) != IDLE || get_control_mode(2) != IDLE || get_control_mode(3) != IDLE) {
-		delay_ms(100);
+	if (blocking) {
+		// waits for the trajectory to finish
+		while (get_control_mode(0) != IDLE || get_control_mode(1) != IDLE || get_control_mode(2) != IDLE || get_control_mode(3) != IDLE) {
+			delay_ms(100);
+		}
 	}
 	// returns to idle mode. The above delay is needed to actually reach the state machine idle mode
-	set_control_mode(0, IDLE);
-	set_control_mode(1, IDLE);
-	set_control_mode(2, IDLE);
-	set_control_mode(3, IDLE);
+	//set_control_mode(0, IDLE);
+	//set_control_mode(1, IDLE);
+	//set_control_mode(2, IDLE);
+	//set_control_mode(3, IDLE);
+	//pthread_mutex_unlock(&mutex_traj_buf);
+	
+}
 
+int traj_max_get() {
+	int temp;
+	pthread_mutex_lock(&mutex_traj_buf);
+	temp = traj_max;
+	pthread_mutex_unlock(&mutex_traj_buf);
+	return temp;
+}
+
+void traj_max_set(int n) {
+	pthread_mutex_lock(&mutex_traj_buf);
+	traj_max =n ;
+	pthread_mutex_unlock(&mutex_traj_buf);
+}
+
+int traj_cnt_get() {
+	int temp;
+	pthread_mutex_lock(&mutex_traj_buf);
+	temp = traj_cnt;
+	pthread_mutex_unlock(&mutex_traj_buf);
+	return temp;
+}
+
+void traj_cnt_inc(void) {
+	pthread_mutex_lock(&mutex_traj_buf);
+	traj_cnt++;
+	pthread_mutex_unlock(&mutex_traj_buf);
+}
+
+void traj_cnt_clear(void) {
+	pthread_mutex_lock(&mutex_traj_buf);
+	traj_cnt=0;
+	pthread_mutex_unlock(&mutex_traj_buf);
 }
 
 /* returns the SP angle in degrees for the specified joint
@@ -1273,7 +1379,7 @@ void print_time(int v, int h) {
 /*****************************************************/
 
 void init_files(void) {
-#ifdef _WIN32
+#if defined _WIN32
 	//fp = fopen("mover4_v6/log", "w+"); // w+ erases the file if already existing!
 	//fd_s = fopen("mover4_v6/state", "w+");
 
@@ -1322,4 +1428,13 @@ void speed_set(double base, double shld, double elbow, double wrist) {
 	_speed[2] = elbow;
 	_speed[3] = wrist;
 	pthread_mutex_unlock(&mutex_motor_charact);
+}
+
+
+int readADC_udp(void) {
+	return adc_value;
+}
+
+void stop_traject(void) {
+	traj_max_set(0);
 }
