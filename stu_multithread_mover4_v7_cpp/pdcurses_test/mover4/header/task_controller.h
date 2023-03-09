@@ -1,7 +1,7 @@
  /*
  *	File: task_controller.h
  * 		Move all prototypes and macros pertaining to task_controller from public.h into task_controller.h
- *		public.h now contains only public prototypes excluding task_controller
+ *		public.h now contains only public prototypes exlcuding task_controller
  *
  *	Author				Date			Version
  *	Serge Hould			16 May 2022		2.0.0		
@@ -42,10 +42,12 @@
 #define 	SPEED_10	6.0	
 #define 	SPEED_5		3.0	
 //#define		set_speed			set_speed_max  //an alias
+#define		BLOCKING		1
+#define		NON_BLOCKING	0
 
 typedef struct
 {
-	double data[4];		//angle 
+	double data[6];		//angle 
 }kin_f;
 
 typedef struct
@@ -85,6 +87,8 @@ void close_files(void);
 void speed_set(double base, double shld, double elbow, double wrist);;
 void print_time(int v, int h);
 void set_time(int t);
-void set_all_sp_angles(double* ptr, int max);
+void set_all_sp_angles(double* ptr, int max, int blocking);
+void stop_traject(void);
+int readADC_udp(void);
 
 #endif
